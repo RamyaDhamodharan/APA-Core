@@ -1,0 +1,6 @@
+filename,vendor,invoice_number,invoice_date,due_date,currency,subtotal,tax,total,po_number,expected_match_outcome
+synthetic-001.pdf,Synthetic Supply Co,INV-SYN-001,2026-01-05,2026-02-04,USD,100.00,8.00,108.00,PO-SYN-001,matched
+synthetic-002.png,Northwind Sample,INV-SYN-002,2026-01-06,2026-02-05,USD,250.00,20.00,270.00,PO-SYN-002,needs_review
+synthetic-003.jpg,Contoso Test Goods,INV-SYN-003,2026-01-07,2026-02-06,USD,75.00,6.00,81.00,,no_match
+synthetic-004.pdf,Fabrikam Demo Parts,INV-SYN-004,2026-01-08,2026-02-07,USD,500.00,40.00,540.00,PO-SYN-004,rejected
+synthetic-005.png,Adventure Works Example,INV-SYN-005,2026-01-09,2026-02-08,USD,120.00,9.60,129.60,PO-SYN-005,matched

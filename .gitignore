@@ -1,0 +1,25 @@
+
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+node_modules/
+dist/
+.coverage
+htmlcov/
+*.log
+.DS_Store
+.idea/
+.vscode/
+*.egg-info/
+build/
+
+# Uploaded documents
+/uploads/
+
+# Python test cache
+tests/__pycache__/
+
