@@ -8,8 +8,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
+from src.api.middleware import setup_cors
+from src.api.rest.routes import health_router
 from src.api.rest.routers import (
     audit_routers,
     command_center_routers,
@@ -58,12 +59,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-
-@app.get("/health")
-def health_check():
-    return {"status": "ok", "service": "ap-core"}
-
-
+# Routes
+app.include_router(health_router)
 app.include_router(vendor_routers.router)
 app.include_router(document_routers.router)
 app.include_router(email_polling_routers.router)
@@ -82,18 +79,5 @@ if os.getenv("ENABLE_GOODS_RECEIPT", "true").casefold() in {"1", "true", "yes", 
     app.include_router(goods_receipt_routers.router)
 app.include_router(notification_routers.router)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        origin.strip()
-        for origin in os.getenv(
-            "CORS_ALLOWED_ORIGINS",
-            "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173",
-        ).split(",")
-        if origin.strip()
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["X-Total-Count"],
-)
+# Middleware
+setup_cors(app)
