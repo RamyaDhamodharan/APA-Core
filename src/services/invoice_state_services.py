@@ -56,6 +56,7 @@ ALLOWED_TRANSITIONS = {
     },
     "match_approved": {
         "approved",
+        "paid",
         "rejected",
         "on_hold",
         "matching",
@@ -81,9 +82,9 @@ ALLOWED_TRANSITIONS = {
         "rejected",
         "resubmitted",
     },
-    "approved": {"paid", "overdue", "on_hold", "resubmitted"},
+    "approved": {"paid", "overdue", "on_hold", "rejected", "resubmitted"},
     "rejected": {"resubmitted", "verifying", "matching"},
-    "on_hold": {"verifying", "matching", "approved", "rejected", "resubmitted"},
+    "on_hold": {"verifying", "matching", "approved", "rejected", "paid", "resubmitted"},
     "paid": {"approved"},
     "overdue": {"paid", "approved", "on_hold", "resubmitted"},
     "resubmitted": {"reading", "verifying", "matching", "failed"},
@@ -105,7 +106,8 @@ def transition_invoice(
     if to_status not in WORKFLOW_STATUSES:
         raise HTTPException(status_code=422, detail="Unknown invoice workflow status")
     if to_status in {"approved", "paid"} and not (
-        allow_exception and to_status == "approved"
+        (allow_exception and to_status == "approved")
+        or (to_status == "paid" and getattr(invoice, "status", None) == "ready_to_pay")
     ):
         run_id = getattr(invoice, "final_run_id", None)
         run = db.get(MatchRun, run_id) if run_id else None
@@ -133,6 +135,8 @@ def transition_invoice(
     invoice.workflow_status = to_status
     if to_status in {"approved", "match_approved"}:
         invoice.status = "ready_to_pay"
+    elif to_status == "paid":
+        invoice.status = "paid"
     elif to_status == "rejected":
         invoice.status = "rejected"
     elif to_status == "on_hold":
@@ -141,8 +145,10 @@ def transition_invoice(
         invoice.status = "needs_review"
     else:
         invoice.status = "processing"
-    if to_status in {"approved", "paid", "overdue"}:
+    if to_status in {"approved", "overdue"}:
         invoice.final_status = "approved"
+    elif to_status == "paid":
+        invoice.final_status = "paid"
     elif to_status in {"rejected", "on_hold"}:
         invoice.final_status = to_status
     elif to_status in {

@@ -150,7 +150,7 @@ def list_goods_receipts(
     source_document_id: uuid.UUID | None = None,
     search: Annotated[str | None, Query(max_length=200)] = None,
     sort_by: Annotated[
-        str, Query(pattern="^(receipt_date|receipt_number|gr_number|created_at)$")
+        str, Query(pattern="^(receipt_date|receipt_number|gr_number|created_at|po_date|po_number)$")
     ] = "receipt_date",
     sort_dir: Annotated[str, Query(pattern="^(asc|desc)$")] = "desc",
     # Retained for compatibility with older clients; GR confidence is not a filter.
@@ -189,8 +189,8 @@ def list_goods_receipts(
         filters.append(GoodsReceipt.receipt_date <= date_to)
     sort_column = (
         GoodsReceipt.gr_number
-        if sort_by == "receipt_number"
-        else getattr(GoodsReceipt, sort_by)
+        if sort_by in ("receipt_number", "gr_number", "po_number")
+        else GoodsReceipt.receipt_date if sort_by in ("receipt_date", "po_date") else getattr(GoodsReceipt, sort_by, GoodsReceipt.receipt_date)
     )
     sort_order = sort_column.asc() if sort_dir == "asc" else sort_column.desc()
     total = db.scalar(select(func.count(GoodsReceipt.id)).where(*filters)) or 0

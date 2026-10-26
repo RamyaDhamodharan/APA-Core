@@ -40,8 +40,8 @@ def upgrade() -> None:
         "UPDATE core.documents SET failure_message = "
         "'This email could not be processed automatically. Retry to recover its "
         "supported attachments.' "
-        "WHERE status = 'failed' AND (original_filename ILIKE '%.eml' OR mime = "
-        "'message/rfc822') AND failure_message ILIKE "
+        "WHERE status = 'failed' AND (original_filename ILIKE '%.eml') AND failure_message ILIKE "
+
         "'%stopped unexpectedly after 60 minutes%'"
     )
 

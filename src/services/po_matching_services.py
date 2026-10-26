@@ -268,11 +268,16 @@ def match_invoice_three_way(db: Session, invoice: Invoice) -> dict:
         received: dict[object, Decimal] = {}
         for receipt in receipts:
             for line in receipt.lines:
+                acc_val = line.accepted_qty
+                if acc_val is None:
+                    rec_val = line.received_qty or Decimal("0")
+                    rej_val = line.rejected_qty or Decimal("0")
+                    acc_val = max(Decimal("0"), rec_val - rej_val)
                 accepted[line.po_line_id] = (
-                    accepted.get(line.po_line_id, Decimal("0")) + line.accepted_qty
+                    accepted.get(line.po_line_id, Decimal("0")) + acc_val
                 )
                 received[line.po_line_id] = (
-                    received.get(line.po_line_id, Decimal("0")) + line.received_qty
+                    received.get(line.po_line_id, Decimal("0")) + (line.received_qty or Decimal("0"))
                 )
         for po_line in po_lines:
             po_qty = Decimal(str(po_line.qty or 0))

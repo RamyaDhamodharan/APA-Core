@@ -11,7 +11,7 @@ import uuid
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from urllib.parse import quote
 
 from fastapi import (
@@ -1106,17 +1106,6 @@ def _save_invoice_from_extraction(
 
     if vendor is not None and invoice_no:
         normalized_no = invoice_values["invoice_no_normalized"]
-        duplicate = find_duplicate_invoice(
-            db,
-            vendor.id,
-            normalized_no,
-            exclude_invoice_id=source_invoice.id if source_invoice else None,
-        )
-        if duplicate is not None:
-            raise DuplicateInvoiceError(
-                "Duplicate current invoice: same vendor and normalized number",
-                original_invoice_id=duplicate.id,
-            )
         prior_versions = (
             db.query(Invoice)
             .filter(
@@ -1132,39 +1121,21 @@ def _save_invoice_from_extraction(
             current_version = next(
                 (item for item in prior_versions if getattr(item, "is_current", False)),
                 None,
-            )
-            if (
-                current_version is not None
-                and total_amount is not None
-                and getattr(current_version, "total_amount", None) == total_amount
-            ):
+            ) or prior_versions[0]
+
+            # Rule: If hold or active invoice, we cannot allow version two!
+            # Only if the prior invoice was rejected is version two allowed.
+            curr_status = getattr(current_version, "workflow_status", None) or getattr(current_version, "status", None)
+            if curr_status != "rejected":
                 raise DuplicateInvoiceError(
-                    "Duplicate current invoice: same vendor, number, and total",
+                    f"Duplicate invoice: {current_version.invoice_no} already exists with status '{curr_status}'. "
+                    "New version (version 2) is only permitted if the prior invoice was rejected.",
                     original_invoice_id=current_version.id,
                 )
-            if current_version is not None and all(
-                getattr(current_version, field, None) == value
-                for field, value in invoice_values.items()
-                if field not in {"match_status", "field_confidence"}
-            ):
-                if "line_items" not in data:
-                    raise DuplicateInvoiceError(
-                        "Duplicate current invoice: same vendor, number, and content"
-                    )
-                existing_lines = (
-                    db.query(InvoiceLine)
-                    .filter(InvoiceLine.invoice_id == current_version.id)
-                    .all()
-                )
-                if _line_fingerprints(existing_lines) == _line_fingerprints(
-                    data.get("line_items") or [], extracted=True
-                ):
-                    raise DuplicateInvoiceError(
-                        "Duplicate current invoice: same vendor, number, and content"
-                    )
+
+            # Prior invoice was rejected -> Version two is allowed!
             version_no = max(invoice.version_no for invoice in prior_versions) + 1
             demoted_current = False
-
             for prior_invoice in prior_versions:
                 if prior_invoice.is_current:
                     prior_invoice.is_current = False
@@ -1195,6 +1166,24 @@ def _save_invoice_from_extraction(
 
 def _line_value(line: dict, *keys):
     return next((line.get(key) for key in keys if line.get(key) is not None), None)
+
+
+_EXTRACT_UOM_PATTERN = (
+    r"(?i)\b(PCS?|PIECES?|NOS?\.?|NUMBERS?|EA|EACH|UNITS?|"
+    r"BOX(?:ES)?|PACK(?:S)?|PKTS?|SETS?|KGS?|KILOS?|GMS?|GRAMS?|"
+    r"MTRS?|METERS?|LTRS?|LITRES?|DOZ(?:EN)?|HRS?|HOURS?|DAYS?|LOTS?|ROLLS?|BAGS?|PAIRS?|"
+    r"CTN(?:S)?|CARTONS?|DRUMS?|CAN(?:S)?|BUNDLES?)\b"
+)
+
+
+def _extract_uom(raw_uom: Any, raw_qty: Any = None) -> str | None:
+    if raw_uom and str(raw_uom).strip():
+        return str(raw_uom).strip()[:10]
+    if raw_qty and isinstance(raw_qty, str):
+        match = re.search(_EXTRACT_UOM_PATTERN, raw_qty)
+        if match:
+            return match.group(1).upper()[:10]
+    return None
 
 
 def _apply_email_po_hint(document: Document, data: dict) -> None:
@@ -1442,9 +1431,10 @@ def _replace_invoice_lines(
                 invoice_id=invoice.id,
                 item_code=str(item_code)[:60] if item_code else None,
                 description=str(description)[:300] if description else None,
-                uom=str(_line_value(raw, "uom", "unit_of_measure"))[:10]
-                if _line_value(raw, "uom", "unit_of_measure")
-                else None,
+                uom=_extract_uom(
+                    _line_value(raw, "uom", "unit_of_measure"),
+                    _line_value(raw, "qty", "quantity"),
+                ),
                 qty=_to_decimal(_line_value(raw, "qty", "quantity")),
                 unit_price=_to_decimal(_line_value(raw, "unit_price", "price")),
                 line_amount=_to_decimal(
@@ -1625,9 +1615,16 @@ def _save_goods_receipt_from_extraction(
             != _normalize_invoice_value(po_line.uom)
         ):
             raise ValueError("Goods receipt line unit does not match its PO line")
-        received = _to_decimal(_line_value(raw, "received_qty", "quantity", "qty"))
+        raw_rec_qty = _line_value(raw, "received_qty", "quantity", "qty")
+        extracted_uom = _extract_uom(_line_value(raw, "uom", "unit_of_measure"), raw_rec_qty)
+        received = _to_decimal(raw_rec_qty)
         accepted = _to_decimal(raw.get("accepted_qty"))
         rejected = _to_decimal(raw.get("rejected_qty"))
+        if accepted is None and len(data.get("line_items") or []) <= 1:
+            accepted = _to_decimal(data.get("accepted_qty"))
+        if accepted is None and received is not None:
+            rejected_val = rejected or _to_decimal(data.get("rejected_qty")) or Decimal(0)
+            accepted = max(Decimal(0), received - rejected_val)
         valid_received = received is not None and received > 0
         valid_accepted = accepted is not None and accepted >= 0
         valid_rejected = rejected is not None and rejected >= 0
@@ -1905,9 +1902,10 @@ def _save_purchase_order_from_extraction(
                 po_id=purchase_order.id,
                 item_code=str(item_code)[:60] if item_code else None,
                 description=str(description)[:300] if description else None,
-                uom=str(_line_value(raw, "uom", "unit_of_measure"))[:10]
-                if _line_value(raw, "uom", "unit_of_measure")
-                else None,
+                uom=_extract_uom(
+                    _line_value(raw, "uom", "unit_of_measure"),
+                    _line_value(raw, "qty", "quantity"),
+                ),
                 qty=_to_decimal(_line_value(raw, "qty", "quantity")),
                 unit_price=_to_decimal(_line_value(raw, "unit_price", "price")),
                 line_amount=_to_decimal(

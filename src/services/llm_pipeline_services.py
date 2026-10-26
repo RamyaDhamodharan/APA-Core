@@ -392,8 +392,17 @@ def extract_document(
     raise RuntimeError("All extraction models failed")
 
 
+_CURRENCIES_PATTERN = r"INR|USD|EUR|GBP|RS\.?|RUPEES?"
+_UOM_PATTERN = (
+    r"PCS?|PIECES?|NOS?\.?|NUMBERS?|EA|EACH|UNITS?|"
+    r"BOX(?:ES)?|PACK(?:S)?|PKTS?|SETS?|KGS?|KILOS?|GMS?|GRAMS?|"
+    r"MTRS?|METERS?|LTRS?|LITRES?|DOZ(?:EN)?|HRS?|HOURS?|DAYS?|LOTS?|ROLLS?|BAGS?|PAIRS?|"
+    r"CTN(?:S)?|CARTONS?|DRUMS?|CAN(?:S)?|BUNDLES?"
+)
+
+
 def _to_decimal(value: Any) -> Decimal | None:
-    """Convert monetary values with currency codes and symbols to Decimal."""
+    """Convert monetary or quantity values with currency codes, symbols, and UOM suffixes to Decimal."""
     if value is None or isinstance(value, bool):
         return None
 
@@ -406,12 +415,10 @@ def _to_decimal(value: Any) -> Decimal | None:
             return None
 
         cleaned = value.strip()
-        cleaned = re.sub(
-            r"(?i)\b(?:INR|USD|EUR|GBP|RS\.?|RUPEES?)\b",
-            "",
-            cleaned,
-        )
-        cleaned = re.sub(r"[?$??,\s]", "", cleaned)
+        cleaned = re.sub(rf"(?i)\b(?:{_CURRENCIES_PATTERN})\b", "", cleaned)
+        cleaned = re.sub(rf"(?i)(?<=\d)(?:{_UOM_PATTERN})\b", "", cleaned)
+        cleaned = re.sub(rf"(?i)\b(?:{_UOM_PATTERN})\b", "", cleaned)
+        cleaned = re.sub(r"[\$€£₹%,\s]", "", cleaned)
 
         if cleaned.startswith("(") and cleaned.endswith(")"):
             cleaned = "-" + cleaned[1:-1]

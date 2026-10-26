@@ -690,6 +690,7 @@ def get_invoice_verification(
             {
                 "id": str(line.id),
                 "qty": line.qty,
+                "uom": line.uom,
                 "unit_price": line.unit_price,
                 "line_amount": line.line_amount,
                 "confidence": line.field_confidence or {},
@@ -1171,6 +1172,7 @@ def get_invoice_detail(
                 "description": line.description,
                 "item_code": line.item_code,
                 "qty": line.qty,
+                "uom": line.uom,
                 "unit_price": line.unit_price,
                 "amount": line.line_amount,
             }
@@ -2279,6 +2281,7 @@ def review_invoice(
     invoice.final_at = decided_at
     invoice.status = {
         "approved": "ready_to_pay",
+        "paid": "paid",
         "rejected": "rejected",
         "on_hold": "on_hold",
     }[payload.decision]
@@ -2368,6 +2371,22 @@ def hold_invoice(
     )
 
 
+@router.post("/{invoice_id}/paid", response_model=InvoiceReviewResponse)
+def mark_invoice_as_paid_decision(
+    invoice_id: uuid.UUID,
+    payload: dict | None = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    comment = (payload or {}).get("comment") or (payload or {}).get("reason") or "Marked as paid by reviewer"
+    return review_invoice(
+        invoice_id,
+        InvoiceReviewRequest(decision="paid", comment=comment),
+        db,
+        current_user,
+    )
+
+
 @router.post("/{invoice_id}/resubmit")
 def resubmit_invoice(
     invoice_id: uuid.UUID,
@@ -2379,9 +2398,10 @@ def resubmit_invoice(
     old = db.query(Invoice).filter(Invoice.id == invoice_id).with_for_update().first()
     if old is None:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    if old.workflow_status != "rejected":
+    if old.workflow_status != "rejected" and getattr(old, "status", None) != "rejected":
         raise HTTPException(
-            status_code=409, detail="Only rejected invoices can be resubmitted"
+            status_code=409,
+            detail="Only rejected invoices can be resubmitted as a new version. Invoices on hold or active status cannot create version two.",
         )
     prior_rejection = (
         db.query(AuditLog)

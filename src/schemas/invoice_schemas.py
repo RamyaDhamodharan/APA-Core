@@ -14,9 +14,9 @@ InvoiceMatchStatus = Literal[
     "no_match",
 ]
 InvoiceStatus = Literal[
-    "processing", "needs_review", "ready_to_pay", "on_hold", "rejected"
+    "processing", "needs_review", "ready_to_pay", "on_hold", "rejected", "paid"
 ]
-InvoiceFinalStatus = Literal["approved", "rejected", "on_hold"]
+InvoiceFinalStatus = Literal["approved", "rejected", "on_hold", "paid"]
 InvoiceWorkflowStatus = Literal[
     "received",
     "reading",

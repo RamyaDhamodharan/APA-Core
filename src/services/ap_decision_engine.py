@@ -193,9 +193,14 @@ def evaluate_invoice(db: Session, invoice: Invoice, owner_id=None) -> dict:
             .filter(GoodsReceiptLine.goods_receipt_id.in_([g.id for g in receipts]))
             .all()
         ):
+            acc_val = _d(grline.accepted_qty)
+            if acc_val is None:
+                rec_val = _d(grline.received_qty) or Decimal(0)
+                rej_val = _d(grline.rejected_qty) or Decimal(0)
+                acc_val = max(Decimal(0), rec_val - rej_val)
             received[grline.po_line_id] = received.get(
                 grline.po_line_id, Decimal(0)
-            ) + _d(grline.accepted_qty)
+            ) + acc_val
 
     # Step 5: Check vendor alignment
     invoice_vendor_id = getattr(invoice, "vendor_id", None)
