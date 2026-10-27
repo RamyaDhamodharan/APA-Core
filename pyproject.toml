@@ -66,3 +66,7 @@ url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 [tool.uv]
 index-strategy = "first-index"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

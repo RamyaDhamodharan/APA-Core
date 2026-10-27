@@ -1,6 +1,7 @@
 """Failure classification and bounded retries for document processing."""
 
 import logging
+import os
 import time
 import uuid
 from collections.abc import Callable
@@ -12,8 +13,13 @@ from src.models.audit_models import AuditLog
 from src.models.document_models import Document
 
 logger = logging.getLogger(__name__)
-RETRY_DELAYS_SECONDS = (30, 120, 600)
-MAX_AUTOMATIC_RETRIES = len(RETRY_DELAYS_SECONDS)
+RETRY_BASE_SECONDS = max(1, int(os.getenv('DOCUMENT_RETRY_BASE_SECONDS', '30')))
+MAX_AUTOMATIC_RETRIES = max(1, int(os.getenv('DOCUMENT_PROCESS_MAX_ATTEMPTS', '3')))
+RETRY_DELAYS_SECONDS = (
+    tuple(RETRY_BASE_SECONDS * (4**i) for i in range(MAX_AUTOMATIC_RETRIES))
+    if (RETRY_BASE_SECONDS != 30 or MAX_AUTOMATIC_RETRIES != 3)
+    else (30, 120, 600)
+)
 PERMANENT_MARKERS = (
     "corrupt",
     "password-protected",

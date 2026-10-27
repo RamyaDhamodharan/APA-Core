@@ -10,7 +10,7 @@ load_dotenv()
 from fastapi import FastAPI
 
 from src.api.middleware import setup_cors
-from src.api.rest.routes import health_router
+from src.api.rest.routers.health_routers import router as health_router
 from src.api.rest.routers import (
     audit_routers,
     command_center_routers,
