@@ -150,6 +150,10 @@ def email_poll_status(
     failures = sum(row.status in {"failed", "failed_final"} for row in messages)
     processed = sum(row.status == "processed" for row in messages)
     needs_attention = sum(row.status == "needs_attention" for row in messages)
+    skipped = sum(
+        row.status == "ignored" or (bool(row.filter_reason) and row.status != "processed")
+        for row in messages
+    )
     skipped_by_reason = Counter(
         row.filter_reason for row in messages if row.filter_reason
     )
@@ -185,9 +189,11 @@ def email_poll_status(
         "last_error": last_error,
         "docling_models_available": docling_models_available(),
         "counts": {
+            "total": len(messages),
             "processed": processed,
             "failed": failures,
             "needs_attention": needs_attention,
+            "skipped": skipped,
             "skipped_by_reason": dict(skipped_by_reason),
         },
         "last_result": state.last_result

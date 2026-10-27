@@ -414,6 +414,8 @@ def evaluate_invoice(db: Session, invoice: Invoice, owner_id=None) -> dict:
     overall_percent = overall_confidence_percent(confidence)
     low_fields = []
     for field in MATERIAL_FIELDS:
+        if field == "gl_code" and not getattr(invoice, "gl_code", None) and field not in confidence:
+            continue
         score = _score(confidence.get(field))
         if score is None or score < MIN_MATERIAL_CONFIDENCE:
             low_fields.append(field)
@@ -468,9 +470,32 @@ def evaluate_invoice(db: Session, invoice: Invoice, owner_id=None) -> dict:
     )
 
     # Step 12: Assemble final outcome payload
+    procurement_issues = [
+        item for item in issues
+        if item.get("code") in {
+            "MISSING_PO",
+            "AMBIGUOUS_PO",
+            "MISSING_GR",
+            "VENDOR_MISMATCH",
+            "CURRENCY_MISMATCH",
+            "LINE_NOT_ON_PO",
+            "QUANTITY_VARIANCE",
+            "PRICE_VARIANCE",
+            "LINE_TOTAL_VARIANCE",
+            "TAX_VARIANCE",
+            "HEADER_TOTAL_VARIANCE",
+            "POSSIBLE_DUPLICATE",
+        }
+    ]
+    is_clean_3way_match = (
+        not procurement_issues
+        and bool(po)
+        and bool(receipts)
+    )
+
     return {
         "rule_set_version": RULE_SET_VERSION,
-        "outcome": "ready_to_pay" if not issues else "needs_review",
+        "outcome": "ready_to_pay" if (is_clean_3way_match or not issues) else "needs_review",
         "confidence_level": confidence_level,
         "overall_confidence_percent": overall_percent,
         "field_confidence": confidence,

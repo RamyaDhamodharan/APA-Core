@@ -83,27 +83,28 @@ def _actor(current_user: dict) -> uuid.UUID:
 
 def _validate_associations(
     db: Session,
-    po_id: uuid.UUID,
-    vendor_id: uuid.UUID,
+    po_id: uuid.UUID | None,
+    vendor_id: uuid.UUID | None,
     source_document_id: uuid.UUID | None,
     lines,
 ) -> None:
-    po = db.get(PurchaseOrder, po_id)
-    if po is None or not po.is_current:
+    po = db.get(PurchaseOrder, po_id) if po_id else None
+    if po_id is not None and (po is None or not po.is_current):
         raise HTTPException(
             status_code=422, detail="Current purchase order was not found"
         )
-    if po.vendor_id and po.vendor_id != vendor_id:
+    if po and vendor_id and po.vendor_id and po.vendor_id != vendor_id:
         raise HTTPException(
             status_code=422, detail="Goods receipt vendor does not match purchase order"
         )
-    if db.get(Vendor, vendor_id) is None:
+    if vendor_id is not None and db.get(Vendor, vendor_id) is None:
         raise HTTPException(status_code=422, detail="Vendor was not found")
     if source_document_id is not None:
         doc = db.get(Document, source_document_id)
         if doc is None:
             raise HTTPException(status_code=422, detail="Source document was not found")
-    po_line_ids = set(
+    if po_id is not None:
+        po_line_ids = set(
         db.scalars(
             select(PurchaseOrderLine.id).where(PurchaseOrderLine.po_id == po_id)
         ).all()
@@ -276,7 +277,7 @@ def create_goods_receipt(
         po_id=payload.po_id,
         vendor_id=payload.vendor_id,
         source_document_id=payload.source_document_id,
-        receipt_date=payload.receipt_date,
+        receipt_date=payload.receipt_date or date.today(),
         created_by=actor,
         updated_by=actor,
         lines=[
@@ -287,6 +288,10 @@ def create_goods_receipt(
     db.add(receipt)
     try:
         db.flush()
+        po = db.get(PurchaseOrder, payload.po_id) if payload.po_id else None
+        if po is not None:
+            from src.api.rest.routers.document_routers import _rematch_waiting_invoices_for_po
+            _rematch_waiting_invoices_for_po(db, po)
         db.add(
             AuditLog(
                 action="goods_receipt_created",
@@ -352,6 +357,10 @@ def update_goods_receipt(
     receipt.updated_by = actor
     try:
         db.flush()
+        po = db.get(PurchaseOrder, receipt.po_id)
+        if po is not None:
+            from src.api.rest.routers.document_routers import _rematch_waiting_invoices_for_po
+            _rematch_waiting_invoices_for_po(db, po)
         db.add(
             AuditLog(
                 action="goods_receipt_updated",

@@ -61,6 +61,15 @@ def allowed_recipients() -> set[str]:
     }
 
 
+def is_recipient_allowed(email: str | None) -> bool:
+    if not email:
+        return False
+    allowed = allowed_recipients()
+    if "*" in allowed:
+        return True
+    return email.strip().casefold() in allowed
+
+
 def _money(value) -> str | None:
     """Format decimal amount as a 2-decimal place string."""
     return f"{value:.2f}" if value is not None else None
@@ -435,9 +444,8 @@ def create_issue_draft(
 
 def _is_allowlisted(draft: EmailDraft) -> bool:
     """Check if all draft recipients are in the configured TEST_MAILBOX_ALLOWLIST."""
-    allowed = allowed_recipients()
     return bool(draft.to_addresses) and all(
-        item.casefold() in allowed
+        is_recipient_allowed(item)
         for item in [*draft.to_addresses, *draft.cc_addresses]
     )
 
@@ -490,7 +498,7 @@ def send_draft(
         + "]"
     )
     message = EmailMessage()
-    message["From"] = os.getenv("SMTP_FROM", "")
+    message["From"] = os.getenv("SMTP_FROM") or os.getenv("SMTP_USER") or os.getenv("IMAP_USER") or "admin@genworx.ai"
     message["To"] = ", ".join(draft.to_addresses)
     if draft.cc_addresses:
         message["Cc"] = ", ".join(draft.cc_addresses)
@@ -516,16 +524,18 @@ def send_draft(
     for attempt in range(max_attempts):
         draft.attempts += 1
         try:
-            host = os.getenv("SMTP_HOST") or "localhost"
+            host = os.getenv("SMTP_HOST") or "smtp.gmail.com"
             port = int(os.getenv("SMTP_PORT", "587"))
             if os.getenv("SMTP_USE_SSL", "false").casefold() in {"1", "true", "yes"}:
                 smtp = smtplib.SMTP_SSL(host, port, timeout=20)
             else:
                 smtp = smtplib.SMTP(host, port, timeout=20)
             with smtp:
-                user, password = os.getenv("SMTP_USER"), os.getenv("SMTP_PASSWORD")
-                if user:
-                    smtp.starttls()
+                user = os.getenv("SMTP_USER") or os.getenv("IMAP_USER")
+                password = os.getenv("SMTP_PASSWORD") or os.getenv("IMAP_PASSWORD")
+                if user and hasattr(smtp, "login"):
+                    if hasattr(smtp, "starttls"):
+                        smtp.starttls()
                     smtp.login(user, password or "")
                 smtp.send_message(message)
 

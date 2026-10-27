@@ -306,9 +306,37 @@ def run_match_for_invoice(
     )
 
     # Step 4: Classify initial match result
+    procurement_mismatches = [
+        item for item in decision["discrepancies"]
+        if item.get("code") in {
+            "MISSING_PO",
+            "AMBIGUOUS_PO",
+            "MISSING_GR",
+            "VENDOR_MISMATCH",
+            "CURRENCY_MISMATCH",
+            "LINE_NOT_ON_PO",
+            "QUANTITY_VARIANCE",
+            "PRICE_VARIANCE",
+            "LINE_TOTAL_VARIANCE",
+            "TAX_VARIANCE",
+            "HEADER_TOTAL_VARIANCE",
+            "POSSIBLE_DUPLICATE",
+        }
+    ]
+    has_po = bool(getattr(invoice, "po_id", None) or getattr(invoice, "po_number_raw", None))
+    receipt_ids = decision.get("inputs_summary", {}).get("receipt_ids", [])
+    has_gr = bool(receipt_ids) or bool(
+        db.query(GoodsReceipt.id).filter(GoodsReceipt.po_id == invoice.po_id).first() if invoice.po_id else False
+    )
+    is_three_way_match_ok = (
+        not procurement_mismatches
+        and has_po
+        and has_gr
+    )
+
     result = (
         "match_ok"
-        if decision["outcome"] == "ready_to_pay"
+        if is_three_way_match_ok or decision["outcome"] == "ready_to_pay"
         else (
             "no_match"
             if any(item["code"] == "MISSING_PO" for item in decision["discrepancies"])
@@ -516,7 +544,7 @@ def run_match_for_invoice(
     confidence_missing = confidence_unavailable(
         getattr(invoice, "field_confidence", None) or {}
     )
-    if confidence_needs_review and not auto_reject:
+    if result != "match_ok" and confidence_needs_review and not auto_reject:
         workflow_status = "verifying"
 
     # Step 10: Transition workflow status
@@ -534,7 +562,9 @@ def run_match_for_invoice(
             changed_by=user_id,
             force=True,
             reason=(
-                "Confidence unavailable, please verify"
+                "Invoice 3-way match completed successfully: ready to pay"
+                if result == "match_ok"
+                else "Confidence unavailable, please verify"
                 if confidence_missing
                 else "One or more extracted fields need verification"
                 if confidence_needs_review
@@ -562,10 +592,10 @@ def run_match_for_invoice(
         invoice.status = (
             "rejected"
             if auto_reject
+            else "ready_to_pay"
+            if (result == "match_ok" or decision["outcome"] == "ready_to_pay")
             else "needs_review"
             if requires_verification(getattr(invoice, "field_confidence", None) or {})
-            else "ready_to_pay"
-            if decision["outcome"] == "ready_to_pay"
             else "needs_review"
         )
 

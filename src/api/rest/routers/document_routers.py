@@ -1752,10 +1752,11 @@ def _rematch_waiting_invoices_for_po(
             if isinstance(item, dict)
         }
         should_rematch = (
-            invoice.match_status == "waiting_for_po"
+            invoice.match_status in {"waiting_for_po", "pending", "match_issues", "needs_vendor_review"}
+            or invoice.status in {"processing", "needs_review"}
             or invoice.po_id is None
             or prior_run is None
-            or bool(saved_codes.intersection({"MISSING_PO", "MISSING_GR"}))
+            or bool(saved_codes.intersection({"MISSING_PO", "MISSING_GR", "QUANTITY_VARIANCE"}))
         )
         if not should_rematch:
             continue
@@ -2731,8 +2732,6 @@ def parse_document(
                     f"{_purchase_order_number(extracted_data)}"
                 )
 
-            elif not po_vendor_identity:
-                validation_issues.append("Missing required field: vendor")
             else:
                 try:
                     _save_purchase_order_from_extraction(
@@ -2793,7 +2792,14 @@ def parse_document(
                 validation_issues.append(str(exc))
 
         # Step 7: Set final document status.
-        if validation_issues:
+        if doc_type in {"po", "purchase_order", "goods_receipt"} and not any(
+            issue.startswith("Duplicate") for issue in validation_issues
+        ):
+            document.status = "processed"
+            document.failure_class = None
+            document.failure_message = None
+            document.next_retry_at = None
+        elif validation_issues:
             duplicate_invoice = any(
                 issue.startswith("Duplicate current invoice:")
                 for issue in validation_issues

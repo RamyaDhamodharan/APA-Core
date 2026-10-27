@@ -248,7 +248,7 @@ def resolve_extracted_records_for_vendor(
         invoice = (
             db.query(Invoice)
             .filter(Invoice.source_document_id == document.id)
-            .with_for_update()
+            .with_for_update(of=Invoice)
             .first()
         )
         if invoice is not None and invoice.vendor_id is None:
@@ -259,7 +259,7 @@ def resolve_extracted_records_for_vendor(
         po = (
             db.query(PurchaseOrder)
             .filter(PurchaseOrder.source_document_id == document.id)
-            .with_for_update()
+            .with_for_update(of=PurchaseOrder)
             .first()
         )
         if po is not None and po.vendor_id is None:
@@ -274,7 +274,7 @@ def resolve_extracted_records_for_vendor(
         receipt = (
             db.query(GoodsReceipt)
             .filter(GoodsReceipt.source_document_id == document.id)
-            .with_for_update()
+            .with_for_update(of=GoodsReceipt)
             .first()
         )
         if receipt is not None and receipt.vendor_id is None:

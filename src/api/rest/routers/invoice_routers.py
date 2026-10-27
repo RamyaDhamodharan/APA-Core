@@ -142,7 +142,7 @@ def three_way_match_invoice(
     db.commit()
     outcome = ((run.rules_used or {}).get("match_outcome") if run else None) or {}
     issues = outcome.get("discrepancies", [])
-    ready = outcome.get("outcome") == "ready_to_pay"
+    ready = outcome.get("outcome") == "ready_to_pay" or (run and run.result == "match_ok") or invoice.status == "ready_to_pay"
     supporting = recommend_invoice_review(db, invoice, owner_id=owner_id)
     reason_codes = [item.get("code", "") for item in issues]
     next_action = (
@@ -243,7 +243,7 @@ def get_invoice_recommendation(
                 "reason": item.get("message", "Matching requires review."),
             }
         )
-    ready = outcome.get("outcome") == "ready_to_pay"
+    ready = outcome.get("outcome") == "ready_to_pay" or (run and run.result == "match_ok") or invoice.status == "ready_to_pay"
     return InvoiceRecommendation(
         invoice_id=invoice.id,
         processing_status="completed" if run else "not_matched",

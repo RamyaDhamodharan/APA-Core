@@ -34,6 +34,15 @@ class EditDraft(BaseModel):
     cc_addresses: list[str] | None = None
 
 
+class CreateDraftRequest(BaseModel):
+    to_addresses: list[str] = Field(min_length=1)
+    subject: str = Field(min_length=1, max_length=500)
+    body: str = Field(min_length=1)
+    cc_addresses: list[str] | None = None
+    invoice_id: uuid.UUID | None = None
+    send_now: bool = False
+
+
 class SendDraftRequest(BaseModel):
     reason: str | None = Field(default=None, max_length=1000)
 
@@ -148,6 +157,77 @@ def get_email_draft(
     return _serialize(draft, events)
 
 
+@router.post("/email-drafts", status_code=201)
+def create_custom_email_draft(
+    request: CreateDraftRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    user_id = _user_id(current_user)
+    from src.services.email_draft_services import allowed_recipients
+
+    allowed = allowed_recipients()
+    blocked = bool(allowed and "*" not in allowed) and (
+        not bool(request.to_addresses)
+        or any(
+            address.casefold() not in allowed
+            for address in [*request.to_addresses, *(request.cc_addresses or [])]
+        )
+    )
+
+    draft = EmailDraft(
+        kind="custom",
+        invoice_id=request.invoice_id,
+        to_addresses=request.to_addresses,
+        cc_addresses=request.cc_addresses or [],
+        subject=request.subject,
+        body=request.body,
+        status="draft",
+        blocked_by_allowlist=blocked,
+        created_by=user_id,
+        generated_by="manual",
+    )
+    db.add(draft)
+    db.flush()
+    _event(
+        db,
+        draft,
+        "created",
+        user_id,
+        old=None,
+        new={"to_addresses": draft.to_addresses, "subject": draft.subject, "custom": True},
+    )
+
+    sent = False
+    message = "Draft saved"
+    if request.send_now:
+        sent = send_draft(db, draft, user_id)
+        if sent:
+            db.add(
+                AuditLog(
+                    action="draft_sent",
+                    actor=str(user_id),
+                    entity_type="email_draft",
+                    entity_id=draft.id,
+                    result="success",
+                    message="Custom email sent",
+                    reason="User composed and sent mail directly from app",
+                    created_by=user_id,
+                )
+            )
+            message = "Email sent"
+        else:
+            message = draft.last_error or "Email could not be sent"
+
+    db.commit()
+    db.refresh(draft)
+    return {
+        "draft": _serialize(draft),
+        "sent": sent,
+        "message": message,
+    }
+
+
 @router.post("/invoices/{invoice_id}/email-drafts", status_code=201)
 def generate_invoice_email_draft(
     invoice_id: uuid.UUID,
@@ -199,11 +279,10 @@ def edit_email_draft(
     old = {key: getattr(draft, key) for key in changes}
     for key, value in changes.items():
         setattr(draft, key, value)
-    from src.services.email_draft_services import allowed_recipients
+    from src.services.email_draft_services import is_recipient_allowed
 
-    allowed = allowed_recipients()
     draft.blocked_by_allowlist = not bool(draft.to_addresses) or any(
-        address.casefold() not in allowed
+        not is_recipient_allowed(address)
         for address in [*draft.to_addresses, *draft.cc_addresses]
     )
     draft.edited_by = _user_id(current_user)
