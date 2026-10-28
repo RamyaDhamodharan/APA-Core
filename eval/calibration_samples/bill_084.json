@@ -1,0 +1,25 @@
+{
+  "document_type": "invoice",
+  "vendor": "Unregistered Entity #84",
+  "invoice_number": "INV-2026-0084",
+  "invoice_date": "2026-10-15",
+  "due_date": "2026-11-14",
+  "currency": "USD",
+  "subtotal": 121.84,
+  "tax": 12.18,
+  "total": 134.02,
+  "order_number": "PO-360",
+  "gl_code": "5000",
+  "line_items": [
+    {
+      "description": "Standard Parts Lot #84",
+      "qty": 8,
+      "unit_price": 15.23,
+      "line_amount": 121.84
+    }
+  ],
+  "_meta": {
+    "ocr_quality": 96.0,
+    "is_blurry": false
+  }
+}

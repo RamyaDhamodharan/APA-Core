@@ -1,0 +1,25 @@
+{
+  "document_type": "invoice",
+  "vendor": "Nexus Tech Hardware",
+  "invoice_number": "INV-2026-0064",
+  "invoice_date": "2026-10-15",
+  "due_date": "2026-11-14",
+  "currency": "USD",
+  "subtotal": 207.08,
+  "tax": 20.71,
+  "total": 227.79,
+  "order_number": "PO-860",
+  "gl_code": "7000",
+  "line_items": [
+    {
+      "description": "Standard Parts Lot #64",
+      "qty": 4,
+      "unit_price": 51.77,
+      "line_amount": 207.08
+    }
+  ],
+  "_meta": {
+    "ocr_quality": 96.0,
+    "is_blurry": false
+  }
+}

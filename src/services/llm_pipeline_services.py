@@ -197,6 +197,8 @@ def _groq_extract(
     api_key: str,
     model: str,
     openrouter_api_key: str = "",
+    temperature: float = 0.0,
+    system_prompt_override: str | None = None,
 ) -> dict[str, Any]:
     """Extract structured document fields using a Groq or OpenRouter model."""
     endpoint = GROQ_API_URL
@@ -223,7 +225,7 @@ def _groq_extract(
         },
         json={
             "model": target_model,
-            "temperature": 0,
+            "temperature": temperature,
             "messages": [
                 {
                     "role": "system",

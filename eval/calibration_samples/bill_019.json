@@ -1,0 +1,25 @@
+{
+  "document_type": "invoice",
+  "vendor": "Beacon Facilities Corp",
+  "invoice_number": "INV-2026-0019",
+  "invoice_date": "2026-10-15",
+  "due_date": "2026-11-14",
+  "currency": "USD",
+  "subtotal": 203.04,
+  "tax": 20.3,
+  "total": 223.34,
+  "order_number": "PO-758",
+  "gl_code": "6500",
+  "line_items": [
+    {
+      "description": "Standard Parts Lot #19",
+      "qty": 4,
+      "unit_price": 50.76,
+      "line_amount": 203.04
+    }
+  ],
+  "_meta": {
+    "ocr_quality": 96.0,
+    "is_blurry": false
+  }
+}

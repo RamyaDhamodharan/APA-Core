@@ -897,17 +897,18 @@ async def upload_document(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    if len(files) > 5:
+    max_batch_size = int(os.getenv("MAX_BATCH_UPLOAD_FILES", "100"))
+    if len(files) > max_batch_size:
         raise HTTPException(
             status_code=422,
-            detail="You can upload up to 5 files at a time",
+            detail=f"You can upload up to {max_batch_size} files at a time",
         )
     results = []
     user_id = uuid.UUID(str(current_user["sub"]))
     max_upload_size = int(os.getenv("EMAIL_ATTACHMENT_MAX_BYTES", str(MAX_FILE_SIZE)))
     for file in files:
         filename = Path(file.filename or "upload").name
-        content = await file.read(max_upload_size + 1)
+        content = await file.read(max_upload_size + 1) # to detect oversize files
         result = ingest_file(
             db,
             filename,
@@ -955,6 +956,7 @@ def backfill_procurement_documents_endpoint(
     """Persist existing extracted PO/GR documents that need data review."""
     from ....services.procurement_backfill_services import (
         backfill_procurement_documents,
+    
     )
 
     actor_id = uuid.UUID(str(current_user["sub"])) if current_user.get("sub") else None

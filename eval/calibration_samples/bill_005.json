@@ -1,0 +1,25 @@
+{
+  "document_type": "invoice",
+  "vendor": "Vanguard Raw Materials",
+  "invoice_number": "INV-2026-0005",
+  "invoice_date": "2026-10-15",
+  "due_date": "2026-11-14",
+  "currency": "USD",
+  "subtotal": 234.88,
+  "tax": 23.49,
+  "total": 258.37,
+  "order_number": "PO-703",
+  "gl_code": "6200",
+  "line_items": [
+    {
+      "description": "Standard Parts Lot #5",
+      "qty": 2,
+      "unit_price": 117.44,
+      "line_amount": 234.88
+    }
+  ],
+  "_meta": {
+    "ocr_quality": 96.0,
+    "is_blurry": false
+  }
+}

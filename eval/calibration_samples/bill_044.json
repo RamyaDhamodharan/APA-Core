@@ -1,0 +1,25 @@
+{
+  "document_type": "invoice",
+  "vendor": "Quantum Software Labs",
+  "invoice_number": "INV-2026-0044",
+  "invoice_date": "2026-10-15",
+  "due_date": "2026-11-14",
+  "currency": "USD",
+  "subtotal": 204.3,
+  "tax": 20.43,
+  "total": 224.73,
+  "order_number": "PO-919",
+  "gl_code": "5100",
+  "line_items": [
+    {
+      "description": "Standard Parts Lot #44",
+      "qty": 5,
+      "unit_price": 40.86,
+      "line_amount": 204.3
+    }
+  ],
+  "_meta": {
+    "ocr_quality": 96.0,
+    "is_blurry": false
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "document_type": "invoice",
+  "vendor": "Unregistered Entity #83",
+  "invoice_number": "INV-2026-0083",
+  "invoice_date": "2026-10-15",
+  "due_date": "2026-11-14",
+  "currency": "USD",
+  "subtotal": 201.0,
+  "tax": 20.1,
+  "total": 221.1,
+  "order_number": "PO-546",
+  "gl_code": "7000",
+  "line_items": [
+    {
+      "description": "Standard Parts Lot #83",
+      "qty": 3,
+      "unit_price": 67.0,
+      "line_amount": 201.0
+    }
+  ],
+  "_meta": {
+    "ocr_quality": 96.0,
+    "is_blurry": false
+  }
+}

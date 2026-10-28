@@ -1,0 +1,25 @@
+{
+  "document_type": "invoice",
+  "vendor": "Continental Logistics",
+  "invoice_number": "INV-2026-0097",
+  "invoice_date": "2026-10-15",
+  "due_date": "2026-11-14",
+  "currency": "USD",
+  "subtotal": 360.27,
+  "tax": 36.03,
+  "total": 396.3,
+  "order_number": "PO-771",
+  "gl_code": "5000",
+  "line_items": [
+    {
+      "description": "Standard Parts Lot #97",
+      "qty": 3,
+      "unit_price": 120.09,
+      "line_amount": 360.27
+    }
+  ],
+  "_meta": {
+    "ocr_quality": 82.0,
+    "is_blurry": false
+  }
+}

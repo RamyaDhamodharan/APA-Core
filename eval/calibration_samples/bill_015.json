@@ -1,0 +1,25 @@
+{
+  "document_type": "invoice",
+  "vendor": "Pinnacle Office Products",
+  "invoice_number": "INV-2026-0015",
+  "invoice_date": "2026-10-15",
+  "due_date": "2026-11-14",
+  "currency": "USD",
+  "subtotal": 411.52,
+  "tax": 41.15,
+  "total": 452.67,
+  "order_number": "PO-267",
+  "gl_code": "6500",
+  "line_items": [
+    {
+      "description": "Standard Parts Lot #15",
+      "qty": 8,
+      "unit_price": 51.44,
+      "line_amount": 411.52
+    }
+  ],
+  "_meta": {
+    "ocr_quality": 96.0,
+    "is_blurry": false
+  }
+}

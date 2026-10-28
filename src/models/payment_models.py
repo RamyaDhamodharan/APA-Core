@@ -28,6 +28,12 @@ class Payment(Base):
             unique=True,
             postgresql_where=text("voided_at IS NULL"),
         ),
+        Index(
+            "uq_payments_reference",
+            "reference",
+            unique=True,
+            postgresql_where=text("voided_at IS NULL"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(

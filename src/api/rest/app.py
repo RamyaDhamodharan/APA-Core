@@ -39,7 +39,7 @@ from src.services.tolerance_config_services import validate_tolerance_config
 logger = logging.getLogger(__name__)
 
 
-@asynccontextmanager
+
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     warn_if_container_redis_url_is_localhost()
     warn_if_container_minio_endpoint_is_localhost()

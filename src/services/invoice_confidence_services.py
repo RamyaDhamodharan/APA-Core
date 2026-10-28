@@ -118,12 +118,20 @@ def confidence_threshold() -> float:
 
 
 def _confidence_entry(value: Any, present: bool) -> dict[str, Any]:
-    """Format a single field confidence entry with score and derived flag."""
+    """Format a single field confidence entry with score, derived flag, and signal breakdown."""
     raw = value
     derived = False
+    source_signals = None
+    edited_by = None
+    edited_at = None
+    original_value = None
     if isinstance(value, dict):
         raw = value.get("confidence", value.get("score"))
         derived = bool(value.get("derived", False))
+        source_signals = value.get("source_signals")
+        edited_by = value.get("edited_by")
+        edited_at = value.get("edited_at")
+        original_value = value.get("original_value")
     try:
         score = float(raw)
         if 0 <= score <= 1:
@@ -132,7 +140,16 @@ def _confidence_entry(value: Any, present: bool) -> dict[str, Any]:
     except (TypeError, ValueError):
         score = 0.0
         derived = True
-    return {"confidence": score, "derived": derived}
+    entry = {"confidence": score, "derived": derived}
+    if source_signals is not None:
+        entry["source_signals"] = source_signals
+    if edited_by is not None:
+        entry["edited_by"] = edited_by
+    if edited_at is not None:
+        entry["edited_at"] = edited_at
+    if original_value is not None:
+        entry["original_value"] = original_value
+    return entry
 
 
 def normalize_invoice_confidence(data: dict[str, Any]) -> dict[str, Any]:

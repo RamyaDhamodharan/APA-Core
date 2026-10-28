@@ -1,0 +1,25 @@
+{
+  "document_type": "invoice",
+  "vendor": "Sterling Engineering",
+  "invoice_number": "INV-2026-0040",
+  "invoice_date": "2026-10-15",
+  "due_date": "2026-11-14",
+  "currency": "USD",
+  "subtotal": 439.0,
+  "tax": 43.9,
+  "total": 482.9,
+  "order_number": "PO-785",
+  "gl_code": "6500",
+  "line_items": [
+    {
+      "description": "Standard Parts Lot #40",
+      "qty": 5,
+      "unit_price": 87.8,
+      "line_amount": 439.0
+    }
+  ],
+  "_meta": {
+    "ocr_quality": 96.0,
+    "is_blurry": false
+  }
+}

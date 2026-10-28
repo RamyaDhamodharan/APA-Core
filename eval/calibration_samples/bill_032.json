@@ -1,0 +1,25 @@
+{
+  "document_type": "invoice",
+  "vendor": "Nexus Tech Hardware",
+  "invoice_number": "INV-2026-0032",
+  "invoice_date": "2026-10-15",
+  "due_date": "2026-11-14",
+  "currency": "USD",
+  "subtotal": 441.09,
+  "tax": 44.11,
+  "total": 485.2,
+  "order_number": "PO-187",
+  "gl_code": "6500",
+  "line_items": [
+    {
+      "description": "Standard Parts Lot #32",
+      "qty": 3,
+      "unit_price": 147.03,
+      "line_amount": 441.09
+    }
+  ],
+  "_meta": {
+    "ocr_quality": 96.0,
+    "is_blurry": false
+  }
+}

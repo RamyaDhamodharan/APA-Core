@@ -1,0 +1,25 @@
+{
+  "document_type": "invoice",
+  "vendor": "Apex Industrial Solutions",
+  "invoice_number": "INV-2026-0027",
+  "invoice_date": "2026-10-15",
+  "due_date": "2026-11-14",
+  "currency": "USD",
+  "subtotal": 1178.6,
+  "tax": 117.86,
+  "total": 1296.46,
+  "order_number": "PO-839",
+  "gl_code": "6200",
+  "line_items": [
+    {
+      "description": "Standard Parts Lot #27",
+      "qty": 10,
+      "unit_price": 117.86,
+      "line_amount": 1178.6
+    }
+  ],
+  "_meta": {
+    "ocr_quality": 96.0,
+    "is_blurry": false
+  }
+}

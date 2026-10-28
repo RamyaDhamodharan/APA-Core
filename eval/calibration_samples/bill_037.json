@@ -1,0 +1,25 @@
+{
+  "document_type": "invoice",
+  "vendor": "Apex Industrial Solutions",
+  "invoice_number": "INV-2026-0037",
+  "invoice_date": "2026-10-15",
+  "due_date": "2026-11-14",
+  "currency": "USD",
+  "subtotal": 472.2,
+  "tax": 47.22,
+  "total": 519.42,
+  "order_number": "PO-702",
+  "gl_code": "7000",
+  "line_items": [
+    {
+      "description": "Standard Parts Lot #37",
+      "qty": 5,
+      "unit_price": 94.44,
+      "line_amount": 472.2
+    }
+  ],
+  "_meta": {
+    "ocr_quality": 96.0,
+    "is_blurry": false
+  }
+}
