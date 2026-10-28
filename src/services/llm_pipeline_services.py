@@ -399,7 +399,8 @@ _UOM_PATTERN = (
     r"PCS?|PIECES?|NOS?\.?|NUMBERS?|EA|EACH|UNITS?|"
     r"BOX(?:ES)?|PACK(?:S)?|PKTS?|SETS?|KGS?|KILOS?|GMS?|GRAMS?|"
     r"MTRS?|METERS?|LTRS?|LITRES?|DOZ(?:EN)?|HRS?|HOURS?|DAYS?|LOTS?|ROLLS?|BAGS?|PAIRS?|"
-    r"CTN(?:S)?|CARTONS?|DRUMS?|CAN(?:S)?|BUNDLES?"
+    r"CTN(?:S)?|CARTONS?|DRUMS?|CAN(?:S)?|BUNDLES?|"
+    r"REAM(?:S)?|SHEETS?|PADS?|BOOKS?|BOTTLES?|PACKETS?|TINS?|BARRELS?|TONS?|TONNES?"
 )
 
 
@@ -426,7 +427,12 @@ def _to_decimal(value: Any) -> Decimal | None:
             cleaned = "-" + cleaned[1:-1]
 
         if not re.fullmatch(r"[+-]?\d+(?:\.\d+)?", cleaned):
-            return None
+            # Fallback: extract leading numeric portion if trailing text remains (e.g. "30 REAM" -> 30)
+            m = re.match(r"^[+-]?\d+(?:\.\d+)?", cleaned)
+            if m:
+                cleaned = m.group(0)
+            else:
+                return None
 
         result = Decimal(cleaned)
         return result if result.is_finite() else None

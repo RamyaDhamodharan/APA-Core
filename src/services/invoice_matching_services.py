@@ -334,12 +334,17 @@ def run_match_for_invoice(
         and has_gr
     )
 
+    has_blocking_discrepancies = bool(procurement_mismatches)
+    can_be_ready_to_pay = (
+        not has_blocking_discrepancies
+        and (is_three_way_match_ok or decision.get("outcome") == "ready_to_pay")
+    )
     result = (
         "match_ok"
-        if is_three_way_match_ok or decision["outcome"] == "ready_to_pay"
+        if can_be_ready_to_pay
         else (
             "no_match"
-            if any(item["code"] == "MISSING_PO" for item in decision["discrepancies"])
+            if any(item.get("code") == "MISSING_PO" for item in decision.get("discrepancies", []))
             else "match_issues"
         )
     )
@@ -593,7 +598,7 @@ def run_match_for_invoice(
             "rejected"
             if auto_reject
             else "ready_to_pay"
-            if (result == "match_ok" or decision["outcome"] == "ready_to_pay")
+            if (result == "match_ok" and not has_blocking_discrepancies)
             else "needs_review"
             if requires_verification(getattr(invoice, "field_confidence", None) or {})
             else "needs_review"
